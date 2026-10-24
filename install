@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# A.T.L.A.S — POSIX installer entrypoint
+# ==============================================================================
+# Usage:
+#   ./install                       # full bootstrap
+#   ./install --force-secrets       # rotate all secrets (destructive)
+#   ./install --no-pull             # skip docker compose pull (use cached images)
+#   ./install --profile observability
+#   ./install --skip-open           # do not open the app at the end
+#
+# This is a thin entrypoint — all logic lives in installer/lib/*.sh so the
+# Windows installer can mirror it.
+# ==============================================================================
+set -Eeuo pipefail
+
+# Resolve the repo root (this script lives at the repo root).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+export ATLAS_REPO_ROOT="$SCRIPT_DIR"
+export ATLAS_LIB_DIR="$SCRIPT_DIR/installer/lib"
+export ATLAS_HOME="${ATLAS_HOME:-$HOME/.atlas}"
+
+# shellcheck source=installer/lib/detect.sh
+source "$ATLAS_LIB_DIR/detect.sh"
+# shellcheck source=installer/lib/docker_install.sh
+source "$ATLAS_LIB_DIR/docker_install.sh"
+# shellcheck source=installer/lib/bootstrap.sh
+source "$ATLAS_LIB_DIR/bootstrap.sh"
+
+# ---- Parse args -------------------------------------------------------------
+ATLAS_FORCE_SECRETS=0
+ATLAS_NO_PULL=0
+ATLAS_SKIP_OPEN=0
+ATLAS_PROFILES=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --force-secrets)      ATLAS_FORCE_SECRETS=1; shift ;;
+        --no-pull)            ATLAS_NO_PULL=1; shift ;;
+        --skip-open)          ATLAS_SKIP_OPEN=1; shift ;;
+        --profile)            ATLAS_PROFILES+=("$2"); shift 2 ;;
+        --profile=*)          ATLAS_PROFILES+=("${1#--profile=}"); shift ;;
+        -h|--help)
+            sed -n '2,15p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "[install] Unknown argument: $1" >&2
+            exit 2
+            ;;
+    esac
+done
+
+bootstrap_main

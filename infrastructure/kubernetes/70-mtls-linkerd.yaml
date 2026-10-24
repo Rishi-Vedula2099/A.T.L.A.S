@@ -1,0 +1,25 @@
+# Linkerd mTLS Policy and Service Mesh Annotations
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  namespace: atlas
+  name: backend-mtls-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: backend
+  port: 8000
+  proxyProtocol: HTTP/2
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: ServerAuthorization
+metadata:
+  namespace: atlas
+  name: allow-frontend-to-backend
+spec:
+  server:
+    name: backend-mtls-server
+  client:
+    meshTLS:
+      identities:
+        - "frontend.atlas.serviceaccount.identity.linkerd.cluster.local"

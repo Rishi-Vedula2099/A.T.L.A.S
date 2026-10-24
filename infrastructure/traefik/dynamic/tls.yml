@@ -1,0 +1,43 @@
+# ==============================================================================
+# A.T.L.A.S — Traefik dynamic TLS config
+# ==============================================================================
+
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      maxVersion: VersionTLS13
+      sniStrict: true
+      cipherSuites: []  # TLS 1.3 cipher suites are not configurable
+      curvePreferences:
+        - CurveP521
+        - CurveP384
+    modern:
+      minVersion: VersionTLS13
+
+  stores:
+    default:
+      defaultCertificate:
+        # If no cert is provided, Traefik generates a self-signed one at startup.
+        # In production, mount /etc/traefik/certs/fullchain.pem + privkey.pem
+        # and uncomment:
+        # certFile: /etc/traefik/certs/fullchain.pem
+        # keyFile: /etc/traefik/certs/privkey.pem
+        {}
+
+# HSTS + secure headers applied to all HTTPS responses
+http:
+  middlewares:
+    secure-headers:
+      headers:
+        sslRedirect: true
+        sslForceHost: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        contentSecurityPolicy: "default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:;"

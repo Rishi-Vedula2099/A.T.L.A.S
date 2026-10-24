@@ -1,0 +1,17 @@
+# Trivy Container Vulnerability Scanner Config
+severity:
+  - HIGH
+  - CRITICAL
+
+exit-code: 0
+ignore-unfixed: true
+
+format: table
+
+vulnerability:
+  type:
+    - os
+    - library
+
+cache:
+  dir: /tmp/trivy-cache

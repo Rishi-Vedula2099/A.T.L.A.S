@@ -1,0 +1,14 @@
+---
+- name: Trigger Ad-hoc ATLAS Backup
+  hosts: atlas_servers
+  become: true
+  tasks:
+    - name: Run backup service once
+      command: docker compose -f infrastructure/docker/docker-compose.yml --profile backup run --rm atlas-backup python /app/backup.py
+      args:
+        chdir: "{{ atlas_dest_dir }}"
+      register: backup_output
+
+    - name: Display backup execution summary
+      debug:
+        var: backup_output.stdout_lines

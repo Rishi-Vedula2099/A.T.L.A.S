@@ -1,0 +1,22 @@
+# Kyverno Image Verification Policy for Cosign Signatures
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-image-signatures
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+    - name: verify-signature
+      match:
+        any:
+        - resources:
+            kinds:
+              - Pod
+      verifyImages:
+      - imageReferences:
+        - "ghcr.io/atlas/*"
+        keyless:
+          identities:
+          - issuer: "https://token.actions.githubusercontent.com"
+            subject: "https://github.com/atlas/*"

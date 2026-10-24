@@ -1,0 +1,16 @@
+apiVersion: v2
+name: atlas
+description: A.T.L.A.S — Autonomous Thinking Learning Assistance System. Personal Cognitive Operating System with multi-agent orchestration, memory, browser, vision and coding agents.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/atlas/atlas
+maintainers:
+  - name: A.T.L.A.S Team
+keywords:
+  - ai
+  - agents
+  - llm
+  - langgraph
+  - cognitive-os
+dependencies: []

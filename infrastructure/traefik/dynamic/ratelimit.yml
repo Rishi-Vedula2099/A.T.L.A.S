@@ -1,0 +1,16 @@
+# ==============================================================================
+# A.T.L.A.S — Traefik rate limiting
+# ==============================================================================
+# Per-IP burst limiting on the API. Tuned for "interactive single-user" usage
+# by default; tighten for multi-tenant production.
+
+http:
+  middlewares:
+    atlas-ratelimit:
+      rateLimit:
+        average: 100       # average requests per second per source IP
+        burst: 200
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 0       # trust X-Forwarded-For from outermost hop

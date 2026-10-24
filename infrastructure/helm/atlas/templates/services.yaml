@@ -1,0 +1,93 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: postgres }
+  ports:
+    - { name: pg, port: 5432, targetPort: pg }
+{{- end }}
+---
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: redis }
+  ports:
+    - { name: redis, port: 6379, targetPort: redis }
+{{- end }}
+---
+{{- if .Values.neo4j.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: neo4j }
+  ports:
+    - { name: bolt, port: 7687, targetPort: bolt }
+    - { name: http, port: 7474, targetPort: http }
+{{- end }}
+---
+{{- if .Values.qdrant.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: qdrant }
+  ports:
+    - { name: http, port: 6333, targetPort: http }
+    - { name: grpc, port: 6334, targetPort: grpc }
+{{- end }}
+---
+{{- if .Values.minio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: minio }
+  ports:
+    - { name: s3,      port: 9000, targetPort: s3 }
+    - { name: console, port: 9001, targetPort: console }
+{{- end }}
+---
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-backend
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: atlas-backend }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+{{- end }}
+---
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  selector: { app.kubernetes.io/name: atlas-frontend }
+  ports:
+    - { name: http, port: 80, targetPort: http }
+{{- end }}

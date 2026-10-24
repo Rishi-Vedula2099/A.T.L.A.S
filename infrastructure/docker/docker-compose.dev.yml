@@ -1,0 +1,57 @@
+# ==============================================================================
+# A.T.L.A.S — development overrides
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ==============================================================================
+
+services:
+  atlas-backend:
+    build:
+      target: runtime
+    environment:
+      ATLAS_ENV: development
+      ATLAS_LOG_LEVEL: DEBUG
+    volumes:
+      # Hot-reload source code
+      - ../../:/app
+      # Don't shadow the venv installed in the image
+      - /app/__pycache__
+    command:
+      - uvicorn
+      - server:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app
+    deploy:
+      resources:
+        limits:
+          memory: 4g  # more headroom for debugging
+
+  atlas-frontend:
+    build:
+      target: dev
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws
+    volumes:
+      - ../../apps/desktop-client:/app
+      - /app/node_modules
+      - /app/.next
+    command: ["npm", "run", "dev"]
+
+  # Disable resource limits in dev so noisy neighbors don't kill containers
+  postgres:
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+  neo4j:
+    deploy:
+      resources:
+        limits:
+          memory: 2g

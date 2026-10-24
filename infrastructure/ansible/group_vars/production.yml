@@ -1,0 +1,4 @@
+atlas_env: "production"
+atlas_log_level: "INFO"
+atlas_backend_replicas: 3
+atlas_frontend_replicas: 2

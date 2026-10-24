@@ -1,0 +1,100 @@
+# Network policies mirroring the Docker Compose 5-network segmentation.
+# Default-deny ingress on every pod, then explicit allow rules.
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: atlas
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+# (No ingress rules -> deny all.)
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: atlas-backend-ingress
+  namespace: atlas
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-backend
+  policyTypes: [Ingress]
+  ingress:
+    # Frontend pods and the ingress controller namespace can reach :8000.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: atlas-frontend
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - { protocol: TCP, port: 8000 }
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: atlas-frontend-ingress
+  namespace: atlas
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-frontend
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - { protocol: TCP, port: 3000 }
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: databases-allow-backend
+  namespace: atlas
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [database]
+  policyTypes: [Ingress]
+  ingress:
+    # Only the backend may reach the databases on their respective ports.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: atlas-backend
+      ports:
+        - { protocol: TCP, port: 5432 }   # postgres
+        - { protocol: TCP, port: 6379 }   # redis
+        - { protocol: TCP, port: 7687 }   # neo4j bolt
+        - { protocol: TCP, port: 6333 }   # qdrant http
+        - { protocol: TCP, port: 6334 }   # qdrant grpc
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-allow-backend
+  namespace: atlas
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: minio
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: atlas-backend
+      ports:
+        - { protocol: TCP, port: 9000 }

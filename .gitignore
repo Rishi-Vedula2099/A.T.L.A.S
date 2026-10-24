@@ -1,0 +1,139 @@
+# ==============================================================================
+# A.T.L.A.S — .gitignore
+# Secrets, build artifacts, and runtime state must NEVER be committed.
+# ==============================================================================
+
+# --- Secrets & environment ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+atlas_secrets/
+
+# --- Generated installer .env (lives in user home, but never commit if copied) ---
+atlas.env
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# --- Node / Next.js ---
+node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+build/
+dist/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Tauri / Rust ---
+apps/desktop/src-tauri/target/
+**/target/
+*.rs.bk
+
+# --- Flutter / mobile ---
+apps/mobile-client/.dart_tool/
+apps/mobile-client/.flutter-plugins
+apps/mobile-client/.flutter-plugins-dependencies
+apps/mobile-client/build/
+
+# --- Docker runtime data (mounted volumes) ---
+docker/data/
+infrastructure/docker/data/
+volumes/
+
+# --- MinIO / backups ---
+minio_data/
+backups/
+*.dump
+*.sql.gz
+*.rdb
+*.tar.enc
+backup_*/
+
+# --- Terraform ---
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# --- Ansible ---
+*.retry
+vault-password.txt
+
+# --- Logs & temp ---
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# --- App runtime artifacts ---
+screenshots/
+*.wav
+*.mp3
+*.pcap
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# --- Lockfiles we DO want to commit (kept explicitly): ---
+# package-lock.json, Cargo.lock — DO NOT ignore these

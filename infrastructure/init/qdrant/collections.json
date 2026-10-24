@@ -1,0 +1,25 @@
+{
+  "collections": {
+    "atlas_memory": {
+      "vectors": {
+        "size": 1536,
+        "distance": "Cosine"
+      },
+      "hnsw_config": {
+        "m": 16,
+        "ef_construct": 100
+      },
+      "optimizers_config": {
+        "default_segment_number": 2
+      },
+      "on_disk_payload": false
+    },
+    "atlas_documents": {
+      "vectors": {
+        "size": 1536,
+        "distance": "Cosine"
+      }
+    }
+  },
+  "_comment": "Applied by scripts/init_qdrant.py at backend startup. Qdrant has no native init hook for collection creation; the backend creates these idempotently via its qdrant-client connection."
+}

@@ -1,0 +1,36 @@
+# ==============================================================================
+# A.T.L.A.S — Traefik forward-auth
+# ==============================================================================
+# All non-public routes forward to the backend's /auth/verify endpoint.
+# Public (unauthenticated) routes are: /auth/signup, /auth/login,
+# /auth/refresh, /healthz, /readyz, /metrics, /docs, /openapi.json, /.
+
+http:
+  middlewares:
+    atlas-auth:
+      forwardAuth:
+        address: http://atlas-backend:8000/auth/verify
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-User-Id"
+          - "X-User-Email"
+          - "X-User-Role"
+
+  routers:
+    # Public endpoints — no auth
+    atlas-backend-public:
+      rule: "Host(`api.atlas.localhost`) && PathPrefix(`/auth/signup`, `/auth/login`, `/auth/refresh`, `/healthz`, `/readyz`, `/metrics`, `/docs`, `/openapi.json`)"
+      entrypoints:
+        - websecure
+      service: atlas-backend
+      middlewares: [secure-headers]
+      tls: true
+
+    # Everything else on the API requires auth
+    atlas-backend-protected:
+      rule: "Host(`api.atlas.localhost`)"
+      entrypoints:
+        - websecure
+      service: atlas-backend
+      middlewares: [secure-headers, atlas-auth, atlas-ratelimit]
+      tls: true

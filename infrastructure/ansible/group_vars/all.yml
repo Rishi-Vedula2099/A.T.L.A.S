@@ -1,0 +1,7 @@
+atlas_dest_dir: "/opt/atlas"
+atlas_user: "atlas"
+atlas_group: "atlas"
+atlas_image_registry: "ghcr.io/atlas"
+atlas_image_tag: "latest"
+atlas_env: "production"
+atlas_log_level: "INFO"

@@ -1,0 +1,14 @@
+# ==============================================================================
+# Remote state — copy this file to `backend.tf` and fill in your bucket/region.
+# We DO NOT ship a real backend.tf so multiple teams can use different states.
+# ==============================================================================
+
+terraform {
+  backend "s3" {
+    bucket         = "REPLACE_ME-tfstate"
+    key            = "atlas/aws/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "atlas-tf-locks"
+    encrypt        = true
+  }
+}

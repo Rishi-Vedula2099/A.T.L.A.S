@@ -1,0 +1,4 @@
+atlas_env: "staging"
+atlas_log_level: "DEBUG"
+atlas_backend_replicas: 1
+atlas_frontend_replicas: 1

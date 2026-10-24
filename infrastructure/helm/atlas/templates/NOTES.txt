@@ -1,0 +1,38 @@
+A.T.L.A.S has been deployed to namespace "{{ .Release.Namespace }}".
+
+1. Wait for everything to be ready:
+
+   kubectl -n {{ .Release.Namespace }} wait --for=condition=Ready pod --all --timeout=300s
+
+2. Provision the secret if you didn't pass secret values inline. The chart
+   emits an empty atlas-db-secret by default — fill it with real values via
+   External Secrets Operator / Sealed Secrets / kubectl, e.g.:
+
+   kubectl -n {{ .Release.Namespace }} create secret generic atlas-db-secret \
+       --from-literal=postgres-password='...' \
+       --from-literal=neo4j-password='...' \
+       --from-literal=redis-password='...' \
+       --from-literal=jwt-secret='...' \
+       --from-literal=jwt-refresh-secret='...' \
+       --from-literal=atlas-api-key='...' \
+       --from-literal=minio-access-key='...' \
+       --from-literal=minio-secret-key='...' \
+       --from-literal=atlas-backup-key='...' \
+       --from-literal=bootstrap-admin-password='...' \
+       --dry-run=client -o yaml | kubectl apply -f -
+
+3. Find the public URLs:
+
+{{- if .Values.ingress.enabled }}
+   Frontend: https://{{ .Values.ingress.hosts.frontend }}
+   Backend:  https://{{ .Values.ingress.hosts.backend }}
+{{- else }}
+   No Ingress enabled. Port-forward to access:
+     kubectl -n {{ .Release.Namespace }} port-forward svc/atlas-frontend 3000:80
+     kubectl -n {{ .Release.Namespace }} port-forward svc/atlas-backend 8000:80
+{{- end }}
+
+4. Verify health:
+
+   kubectl -n {{ .Release.Namespace }} exec deploy/atlas-backend -- \
+       curl -s http://localhost:8000/readyz

@@ -1,0 +1,59 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-validate:
+    name: Lint & Static Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Python Syntax & Compilation Check
+        run: |
+          python -m py_compile $(git ls-files '*.py')
+
+      - name: Validate YAML Files
+        run: |
+          pip install pyyaml
+          python -c "
+          import glob, yaml
+          for f in glob.glob('**/*.yml', recursive=True) + glob.glob('**/*.yaml', recursive=True):
+              if '_helpers.tpl' in f or 'NOTES.txt' in f: continue
+              with open(f, 'r') as s:
+                  list(yaml.safe_load_all(s))
+          print('All YAML files parsed successfully.')
+          "
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          docker compose -f infrastructure/docker/docker-compose.yml config --quiet
+          docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.prod.yml -f infrastructure/docker/docker-compose.enterprise.yml config --quiet
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.0
+
+      - name: Terraform Format Check
+        run: |
+          terraform fmt -check -recursive infrastructure/terraform
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Helm Chart Lint
+        run: |
+          helm lint infrastructure/helm/atlas

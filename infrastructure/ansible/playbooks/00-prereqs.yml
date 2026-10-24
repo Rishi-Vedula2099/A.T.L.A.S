@@ -1,0 +1,7 @@
+---
+- name: Provision Host Prerequisites
+  hosts: atlas_servers
+  become: true
+  roles:
+    - common
+    - docker

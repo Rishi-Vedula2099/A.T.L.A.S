@@ -1,0 +1,7 @@
+# Rename to backend.tf and configure GCS bucket for remote state.
+# terraform {
+#   backend "gcs" {
+#     bucket = "atlas-tfstate-gcp-bucket"
+#     prefix = "terraform/state"
+#   }
+# }

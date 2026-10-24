@@ -1,0 +1,35 @@
+name: Continuous Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Target Deployment Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Image tag to deploy'
+        required: true
+        default: 'latest'
+
+jobs:
+  deploy-k8s:
+    name: Deploy to Kubernetes / Helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Deploy Chart via Helm
+        run: |
+          echo "Deploying image tag ${{ inputs.image_tag }} to ${{ inputs.target_environment }}..."
+          # helm upgrade --install atlas infrastructure/helm/atlas -f infrastructure/helm/atlas/values-${{ inputs.target_environment }}.yaml --set image.tag=${{ inputs.image_tag }}

@@ -1,0 +1,75 @@
+# Secrets — never include in build context
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node / Next.js
+**/node_modules/
+**/.next/
+**/out/
+**/build/
+**/dist/
+**/.vercel/
+
+# Rust / Tauri
+**/target/
+
+# Docker
+**/docker/data/
+volumes/
+
+# Backups / runtime data
+backups/
+*.dump
+*.sql.gz
+*.rdb
+*.tar.enc
+minio_data/
+screenshots/
+*.wav
+*.mp3
+
+# Terraform / IaC state
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfvars
+
+# Git / IDE / OS
+.git/
+.gitignore
+.github/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.md
+!README.md
+docs/
+
+# Build artifacts not needed in image
+apps/mobile-client/
+apps/desktop/
+infrastructure/
+installer/
+scripts/
+start_atlas.bat
+atlas_context.md

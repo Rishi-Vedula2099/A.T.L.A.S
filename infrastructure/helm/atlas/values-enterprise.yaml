@@ -1,0 +1,51 @@
+# Enterprise overlay for the A.T.L.A.S Helm chart.
+# Usage:
+#   helm install atlas ./infrastructure/helm/atlas \
+#       -f ./infrastructure/helm/atlas/values.yaml \
+#       -f ./infrastructure/helm/atlas/values-enterprise.yaml
+
+image:
+  tag: ""             # set on the CLI
+  pullPolicy: Always
+
+backend:
+  replicas: 5
+  resources:
+    requests: { cpu: "1",   memory: 2Gi }
+    limits:   { cpu: "4",   memory: 4Gi }
+  hpa:
+    minReplicas: 5
+    maxReplicas: 20
+
+frontend:
+  replicas: 4
+  hpa:
+    minReplicas: 4
+    maxReplicas: 12
+
+postgresql:
+  persistence:
+    size: 100Gi
+  resources:
+    requests: { cpu: "2",   memory: 4Gi }
+    limits:   { cpu: "4",   memory: 8Gi }
+
+neo4j:
+  persistence:
+    size: 100Gi
+  resources:
+    requests: { cpu: "2",   memory: 4Gi }
+    limits:   { cpu: "4",   memory: 8Gi }
+
+qdrant:
+  persistence:
+    size: 100Gi
+
+minio:
+  persistence:
+    size: 200Gi
+
+mtls:
+  enabled: true
+  provider: linkerd
+

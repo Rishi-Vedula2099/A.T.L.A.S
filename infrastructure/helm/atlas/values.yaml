@@ -1,0 +1,169 @@
+# ==============================================================================
+# A.T.L.A.S — Helm chart defaults
+# ==============================================================================
+# Override per environment with `helm install ... -f values-prod.yaml` or
+# `helm install ... --set image.tag=v0.0.5`.
+# ==============================================================================
+
+# Global namespace (created by the chart).
+namespace: atlas
+
+# Global image registry and tag applied to all app images.
+image:
+  registry: ghcr.io/atlas
+  tag: latest
+  pullPolicy: Always
+  pullSecrets: []   # e.g. [{ name: ghcr-pull-secret }]
+
+# ---- In-cluster databases (toggle off to use managed services) -------------
+postgresql:
+  enabled: true
+  image: postgres:16-alpine
+  user: atlas_admin
+  db: atlas_db
+  persistence:
+    storageClass: standard
+    size: 20Gi
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: "2",  memory: 4Gi }
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  persistence:
+    storageClass: standard
+    size: 5Gi
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
+
+neo4j:
+  enabled: true
+  image: neo4j:5-community
+  persistence:
+    storageClass: standard
+    size: 20Gi
+  resources:
+    requests: { cpu: 500m, memory: 2Gi }
+    limits:   { cpu: "2",  memory: 4Gi }
+
+qdrant:
+  enabled: true
+  image: qdrant/qdrant:latest
+  persistence:
+    storageClass: standard
+    size: 20Gi
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
+
+minio:
+  enabled: true
+  image: minio/minio:latest
+  persistence:
+    storageClass: standard
+    size: 50Gi
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits:   { cpu: "1",  memory: 1Gi }
+
+# ---- App workloads ---------------------------------------------------------
+backend:
+  enabled: true
+  repository: atlas-backend
+  replicas: 3
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits:   { cpu: "2",  memory: 2Gi }
+  env: {}
+  # ATLAS_ENV: production
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    cpuAverageUtilization: 70
+    memoryAverageUtilization: 80
+  pdb:
+    enabled: true
+    minAvailable: 2
+
+frontend:
+  enabled: true
+  repository: atlas-frontend
+  replicas: 2
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits:   { cpu: 500m, memory: 512Mi }
+  env:
+    NODE_ENV: production
+    NEXT_PUBLIC_API_URL: https://api.atlas.example.com
+    NEXT_PUBLIC_WS_URL: wss://api.atlas.example.com/ws
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    cpuAverageUtilization: 75
+  pdb:
+    enabled: true
+    minAvailable: 1
+
+# ---- External / managed service overrides ----------------------------------
+# When in-cluster databases are disabled, point at managed services here.
+externalDatabase:
+  postgresHost: ""
+  redisHost: ""
+  neo4jUri: ""
+  qdrantHost: ""
+  minioEndpoint: ""
+
+# ---- Secrets ---------------------------------------------------------------
+# Provide values inline (NOT for production) or leave blank to provision via
+# External Secrets Operator / Sealed Secrets.
+secrets:
+  postgresPassword: ""
+  neo4jPassword: ""
+  redisPassword: ""
+  jwtSecret: ""
+  jwtRefreshSecret: ""
+  atlasApiKey: ""
+  minioAccessKey: ""
+  minioSecretKey: ""
+  atlasBackupKey: ""
+  bootstrapAdminPassword: ""
+
+# ---- Ingress ---------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    frontend: atlas.example.com
+    backend: api.atlas.example.com
+  tls:
+    enabled: true
+    secretName: atlas-tls
+
+# ---- Networking ------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  ingressNamespace: ingress-nginx
+
+# ---- Pod security ----------------------------------------------------------
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+# ---- Service Mesh / mTLS ----------------------------------------------------
+mtls:
+  enabled: false
+  provider: linkerd # linkerd | istio
+

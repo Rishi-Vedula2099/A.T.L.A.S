@@ -1,0 +1,6 @@
+---
+- name: Deploy ATLAS Stack
+  hosts: atlas_servers
+  become: true
+  roles:
+    - atlas_deploy

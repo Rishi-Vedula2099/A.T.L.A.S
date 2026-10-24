@@ -1,0 +1,26 @@
+---
+- name: Ensure baseline packages are installed
+  apt:
+    name:
+      - curl
+      - git
+      - htop
+      - ufw
+      - python3-pip
+      - rsync
+    state: present
+    update_cache: yes
+  when: ansible_os_family == 'Debian'
+
+- name: Create atlas system group
+  group:
+    name: "{{ atlas_group }}"
+    state: present
+
+- name: Create atlas system user
+  user:
+    name: "{{ atlas_user }}"
+    group: "{{ atlas_group }}"
+    create_home: yes
+    shell: /bin/bash
+    state: present

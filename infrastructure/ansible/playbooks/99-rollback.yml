@@ -1,0 +1,26 @@
+---
+- name: Rollback ATLAS Stack to Target Image Tag
+  hosts: atlas_servers
+  become: true
+  vars:
+    target_tag: "{{ rollback_tag | mandatory }}"
+  tasks:
+    - name: Set target image tag in environment
+      lineinfile:
+        path: "{{ atlas_dest_dir }}/.env"
+        regexp: '^ATLAS_IMAGE_TAG='
+        line: "ATLAS_IMAGE_TAG={{ target_tag }}"
+
+    - name: Redeploy stack with rollback tag
+      command: docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.prod.yml up -d
+      args:
+        chdir: "{{ atlas_dest_dir }}"
+
+    - name: Verify health post-rollback
+      uri:
+        url: "http://localhost/readyz"
+        status_code: 200
+      register: health_check
+      until: health_check.status == 200
+      retries: 20
+      delay: 5

@@ -1,0 +1,28 @@
+# Production overlay for the A.T.L.A.S Helm chart.
+# Usage:
+#   helm install atlas ./infrastructure/helm/atlas -f ./infrastructure/helm/atlas/values.yaml \
+#                                              -f ./infrastructure/helm/atlas/values-prod.yaml
+
+image:
+  tag: ""             # set on the CLI: --set image.tag=v0.0.5
+  pullPolicy: Always
+
+backend:
+  replicas: 3
+  resources:
+    requests: { cpu: "1",   memory: 2Gi }
+    limits:   { cpu: "2",   memory: 2Gi }
+
+frontend:
+  replicas: 3
+
+postgresql:
+  persistence:
+    size: 50Gi
+  resources:
+    requests: { cpu: "1",   memory: 2Gi }
+    limits:   { cpu: "2",   memory: 4Gi }
+
+neo4j:
+  persistence:
+    size: 50Gi

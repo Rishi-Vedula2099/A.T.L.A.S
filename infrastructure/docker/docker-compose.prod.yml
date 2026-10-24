@@ -1,0 +1,75 @@
+# ==============================================================================
+# A.T.L.A.S — production overrides
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Production expects real TLS certificates mounted at
+#   /etc/traefik/certs/fullchain.pem and privkey.pem (or ACME via the env below).
+# ==============================================================================
+
+services:
+  atlas-backend:
+    environment:
+      ATLAS_ENV: production
+      ATLAS_LOG_LEVEL: WARNING
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+
+  atlas-frontend:
+    environment:
+      NODE_ENV: production
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512m
+
+  traefik:
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--api=false"
+      - "--log.level=WARN"
+      - "--accesslog=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # ACME / Let's Encrypt (set ACME_EMAIL + ACME_DOMAINS)
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../traefik/dynamic:/etc/traefik/dynamic:ro
+      - traefik_acme:/etc/traefik
+    restart: always
+
+  postgres:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+  neo4j:
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+
+volumes:
+  traefik_acme:

@@ -1,0 +1,12 @@
+# Syft Software Bill of Materials (SBOM) Config
+output: spdx-json
+file: ./atlas-sbom.spdx.json
+
+package:
+  catalogers:
+    - python-package-cataloger
+    - dpkg-db-cataloger
+    - apk-db-cataloger
+
+source:
+  scope: AllLayers

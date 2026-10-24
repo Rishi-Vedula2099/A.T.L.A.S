@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-orchestrator
+  labels:
+    app: atlas-orchestrator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: atlas-orchestrator
+  template:
+    metadata:
+      labels:
+        app: atlas-orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: atlas-registry.azurecr.io/orchestrator:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: POSTGRES_HOST
+          value: "postgres-service"
+        - name: REDIS_HOST
+          value: "redis-service"
+        resources:
+          limits:
+            cpu: "1"
+            memory: 2Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-orchestrator-service
+spec:
+  selector:
+    app: atlas-orchestrator
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

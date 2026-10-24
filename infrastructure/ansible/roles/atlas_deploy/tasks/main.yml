@@ -1,0 +1,35 @@
+---
+- name: Ensure target directory exists
+  file:
+    path: "{{ atlas_dest_dir }}"
+    state: directory
+    owner: "{{ atlas_user }}"
+    group: "{{ atlas_group }}"
+    mode: '0755'
+
+- name: Deploy rendered environment file
+  template:
+    src: atlas.env.j2
+    dest: "{{ atlas_dest_dir }}/.env"
+    owner: "{{ atlas_user }}"
+    group: "{{ atlas_group }}"
+    mode: '0600'
+
+- name: Pull Docker Compose stack images
+  command: docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.prod.yml pull
+  args:
+    chdir: "{{ atlas_dest_dir }}"
+
+- name: Start ATLAS Docker Compose stack
+  command: docker compose -f infrastructure/docker/docker-compose.yml -f infrastructure/docker/docker-compose.prod.yml up -d
+  args:
+    chdir: "{{ atlas_dest_dir }}"
+
+- name: Wait for backend readiness endpoint
+  uri:
+    url: "http://localhost/readyz"
+    status_code: 200
+  register: result
+  until: result.status == 200
+  retries: 30
+  delay: 5

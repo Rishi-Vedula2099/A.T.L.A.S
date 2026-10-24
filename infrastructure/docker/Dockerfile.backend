@@ -1,0 +1,107 @@
+# syntax=docker/dockerfile:1.7
+# ==============================================================================
+# A.T.L.A.S — Backend image
+# Multi-stage build. Python 3.12 slim + system deps for Postgres, Playwright,
+# OpenCV and Whisper. Runs as a non-root user.
+# ==============================================================================
+
+ARG PYTHON_VERSION=3.12-slim
+
+# --- Stage 1: builder --------------------------------------------------------
+FROM python:${PYTHON_VERSION} AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /build
+
+# System deps needed to build Python wheels (psycopg2, opencv, bcrypt, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        curl \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps to a target directory for clean copy in stage 2.
+COPY requirements.txt .
+RUN pip install --prefix=/install -r requirements.txt
+
+# --- Stage 2: runtime --------------------------------------------------------
+FROM python:${PYTHON_VERSION} AS runtime
+
+ARG APP_USER=atlas
+ARG APP_UID=1000
+ARG APP_GID=1000
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Runtime system deps:
+#  - libpq5 (psycopg2), libglib2.0 + libgl1 (opencv/cv2), libnss3 libs (Chromium),
+#    fonts + dbus for Playwright, postgresql-client for backup scripts, curl for
+#    HEALTHCHECK, tini as init.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpq5 \
+        libglib2.0-0 \
+        libgl1 \
+        libnss3 \
+        libnspr4 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libcups2 \
+        libdrm2 \
+        libdbus-1-3 \
+        libxkbcommon0 \
+        libatspi2.0-0 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxfixes3 \
+        libxrandr2 \
+        libgbm1 \
+        libasound2 \
+        libpango-1.0-0 \
+        libcairo2 \
+        fonts-liberation \
+        postgresql-client \
+        curl \
+        tini \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder.
+COPY --from=builder /install /usr/local
+
+# Create non-root user.
+RUN groupadd --system --gid ${APP_GID} ${APP_USER} \
+    && useradd --system --uid ${APP_UID} --gid ${APP_GID} \
+       --create-home --shell /bin/bash ${APP_USER}
+
+# Copy application source.
+COPY --chown=${APP_UID}:${APP_GID} . /app
+
+# Install Playwright Chromium browser for the browser/vision agents.
+# Browsers are large; only Chromium is needed.
+RUN playwright install chromium --with-deps || echo "[WARN] Playwright browser install skipped"
+
+# Directories the app writes to.
+RUN mkdir -p /app/screenshots /app/data \
+    && chown -R ${APP_UID}:${APP_GID} /app
+
+USER ${APP_USER}
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/healthz || exit 1
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# uvicorn: 1 worker per container (scale horizontally with replicas/workers).
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips=*"]

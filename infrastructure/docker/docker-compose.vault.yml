@@ -1,0 +1,38 @@
+# ==============================================================================
+# A.T.L.A.S — Vault integration overlay
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.vault.yml up -d
+# ==============================================================================
+
+services:
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: atlas-vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID:-root}
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - ../vault/config:/vault/config:ro
+    networks:
+      - atlas-database
+    restart: unless-stopped
+
+  vault-agent:
+    image: hashicorp/vault:1.15
+    container_name: atlas-vault-agent
+    command: ["vault", "agent", "-config=/etc/vault/agent.hcl"]
+    volumes:
+      - ../vault/config/agent.hcl:/etc/vault/agent.hcl:ro
+      - atlas_secrets:/run/secrets
+    depends_on:
+      - vault
+    networks:
+      - atlas-database
+    restart: unless-stopped
+
+volumes:
+  atlas_secrets:

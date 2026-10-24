@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "atlas.labels" . | nindent 4 }}
+data:
+  ATLAS_ENV: production
+  ATLAS_LOG_LEVEL: INFO
+  POSTGRES_HOST: {{ ternary "postgres" .Values.externalDatabase.postgresHost (and .Values.postgresql.enabled (not .Values.externalDatabase.postgresHost)) | quote }}
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: {{ .Values.postgresql.user | quote }}
+  POSTGRES_DB: {{ .Values.postgresql.db | quote }}
+  REDIS_HOST: {{ ternary "redis" .Values.externalDatabase.redisHost (and .Values.redis.enabled (not .Values.externalDatabase.redisHost)) | quote }}
+  REDIS_PORT: "6379"
+  NEO4J_URI: {{ ternary "bolt://neo4j:7687" .Values.externalDatabase.neo4jUri (and .Values.neo4j.enabled (not .Values.externalDatabase.neo4jUri)) | quote }}
+  NEO4J_USER: "neo4j"
+  QDRANT_HOST: {{ ternary "qdrant" .Values.externalDatabase.qdrantHost (and .Values.qdrant.enabled (not .Values.externalDatabase.qdrantHost)) | quote }}
+  QDRANT_PORT: "6333"
+  MINIO_ENDPOINT: {{ ternary "minio:9000" .Values.externalDatabase.minioEndpoint (and .Values.minio.enabled (not .Values.externalDatabase.minioEndpoint)) | quote }}
+  MINIO_BUCKET: "atlas-backups"
+  JWT_ALGORITHM: "HS256"
+  JWT_ACCESS_TTL_MINUTES: "15"
+  JWT_REFRESH_TTL_DAYS: "7"

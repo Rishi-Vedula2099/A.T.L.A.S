@@ -1,0 +1,282 @@
+# ==============================================================================
+# A.T.L.A.S — Enterprise overrides
+# ==============================================================================
+# Usage:
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.prod.yml \
+#                  -f docker-compose.enterprise.yml up -d
+#
+# Adds on top of prod:
+#   - Docker Secrets (file-based /run/secrets/*) for every credential
+#   - Multi-replica backend with Traefik sticky sessions
+#   - Stricter CPU + memory reservations
+#   - Image pinning via ATLAS_IMAGE_TAG (always pull, GHCR by default)
+#   - Internal-only DB network enforcement
+#   - Watchtower auto-update sidecar (opt-in `updates` profile)
+#
+# NOTE on Vault: real HashiCorp Vault integration (dynamic DB credentials,
+# secret rotation) is Phase 3. This file consumes secrets via Docker Secrets
+# so the migration to Vault is a drop-in: replace the file backend with the
+# Vault Agent sidecar and the application keeps reading /run/secrets/*.
+# ==============================================================================
+
+x-secret-env: &secret-env
+  # Tell the app to read credentials from Docker Secrets (file-based).
+  # Each *_FILE var points at a path under /run/secrets/ that the platform
+  # populates. The backend's settings loader prefers *_FILE over the bare var
+  # when both are set.
+  POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+  NEO4J_PASSWORD_FILE: /run/secrets/neo4j_password
+  REDIS_PASSWORD_FILE: /run/secrets/redis_password
+  JWT_SECRET_FILE: /run/secrets/jwt_secret
+  JWT_REFRESH_SECRET_FILE: /run/secrets/jwt_refresh_secret
+  ATLAS_API_KEY_FILE: /run/secrets/atlas_api_key
+  MINIO_ACCESS_KEY_FILE: /run/secrets/minio_access_key
+  MINIO_SECRET_KEY_FILE: /run/secrets/minio_secret_key
+  ATLAS_BACKUP_KEY_FILE: /run/secrets/atlas_backup_key
+  ATLAS_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/bootstrap_admin_password
+
+x-app-secrets: &app-secrets
+  - postgres_password
+  - neo4j_password
+  - redis_password
+  - jwt_secret
+  - jwt_refresh_secret
+  - atlas_api_key
+  - minio_access_key
+  - minio_secret_key
+  - atlas_backup_key
+  - bootstrap_admin_password
+
+services:
+  atlas-backend:
+    # Pin to a GHCR image tag instead of building locally.
+    image: ${ATLAS_IMAGE_REGISTRY:-ghcr.io/atlas}/atlas-backend:${ATLAS_IMAGE_TAG:-latest}
+    pull_policy: always
+    build: null   # override base: never build, always pull the signed image
+    environment:
+      <<: *secret-env
+      ATLAS_ENV: enterprise
+      ATLAS_LOG_LEVEL: INFO
+    secrets: *app-secrets
+    deploy:
+      replicas: ${ATLAS_BACKEND_REPLICAS:-3}
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+        reservations:
+          cpus: "1.0"
+          memory: 1g
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 10
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: start-first
+        failure_action: rollback
+    labels:
+      # Keep the base Traefik labels but add a sticky-session cookie so
+      # WebSocket connections stay pinned to one backend replica.
+      - "traefik.http.services.atlas-backend.loadbalancer.sticky.cookie=true"
+      - "traefik.http.services.atlas-backend.loadbalancer.sticky.cookie.name=atlas_be_sid"
+      - "traefik.http.services.atlas-backend.loadbalancer.sticky.cookie.secure=true"
+      - "traefik.http.services.atlas-backend.loadbalancer.sticky.cookie.samesite=lax"
+
+  atlas-frontend:
+    image: ${ATLAS_IMAGE_REGISTRY:-ghcr.io/atlas}/atlas-frontend:${ATLAS_IMAGE_TAG:-latest}
+    pull_policy: always
+    build: null
+    deploy:
+      replicas: ${ATLAS_FRONTEND_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512m
+        reservations:
+          cpus: "0.25"
+          memory: 256m
+      update_config:
+        parallelism: 1
+        delay: 15s
+        order: start-first
+        failure_action: rollback
+
+  # ----- Databases: stricter limits + secrets -------------------------------
+  postgres:
+    image: postgres:16-alpine
+    pull_policy: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-atlas_admin}
+      POSTGRES_DB: ${POSTGRES_DB:-atlas_db}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4g
+        reservations:
+          cpus: "1.0"
+          memory: 2g
+      restart_policy:
+        condition: any
+        max_attempts: 5
+      placement:
+        constraints:
+          - node.role == manager   # keep data on stable nodes (Docker Swarm)
+
+  neo4j:
+    pull_policy: always
+    environment:
+      NEO4J_AUTH_FILE: /run/secrets/neo4j_password   # Neo4j reads *_FILE when set
+    secrets: [neo4j_password]
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4g
+
+  redis:
+    pull_policy: always
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    secrets: [redis_password]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  qdrant:
+    pull_policy: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  minio:
+    pull_policy: always
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+    secrets: [minio_access_key, minio_secret_key]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  # ----- Traefik: prod ACME + enterprise middlewares ------------------------
+  traefik:
+    pull_policy: always
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--api=false"
+      - "--log.level=WARN"
+      - "--accesslog=true"
+      - "--accesslog.bufferingsize=100"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      # ACME (Let's Encrypt) — set ACME_EMAIL + ACME_DOMAINS in .env
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      # Stricter TLS for enterprise
+      - "--entrypoints.websecure.http.tls.options=default@file"
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+
+  # ----- Watchtower (opt-in): automatically refresh images from GHCR -------
+  watchtower:
+    profiles: ["updates"]
+    image: containrrr/watchtower:latest
+    container_name: atlas-watchtower
+    command:
+      - "--interval"
+      - ${ATLAS_UPDATE_INTERVAL_SECONDS:-300}
+      - "--cleanup"
+      - "--label-enable"
+      - "--rolling-restart"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [atlas-management]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  # ----- Backup (always on in enterprise) ------------------------------------
+  atlas-backup:
+    profiles: []    # remove the opt-in profile: enterprise always backs up
+    image: ${ATLAS_IMAGE_REGISTRY:-ghcr.io/atlas}/atlas-backup:${ATLAS_IMAGE_TAG:-latest}
+    pull_policy: always
+    build: null
+    environment:
+      <<: *secret-env
+      ATLAS_BACKUP_SCHEDULE: ${ATLAS_BACKUP_SCHEDULE:-0 2 * * *}
+      ATLAS_BACKUP_RETENTION: ${ATLAS_BACKUP_RETENTION:-30}
+    secrets: *app-secrets
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+      restart_policy:
+        condition: any
+        max_attempts: 3
+
+# ==============================================================================
+# Docker Secrets (external). Provision with:
+#   printf '%s' "$POSTGRES_PASSWORD"  | docker secret create postgres_password -
+#   printf '%s' "$NEO4J_PASSWORD"     | docker secret create neo4j_password -
+#   ... (see docs/enterprise-deployment.md for the full provisioning script)
+#
+# When using `docker compose` (non-Swarm), secrets fall back to bind-mounted
+# files at /run/secrets/<name> via the `secrets:` top-level block below. On
+# Swarm they are real swarm secrets.
+# ==============================================================================
+secrets:
+  postgres_password:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/postgres_password
+  neo4j_password:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/neo4j_password
+  redis_password:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/redis_password
+  jwt_secret:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/jwt_secret
+  jwt_refresh_secret:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/jwt_refresh_secret
+  atlas_api_key:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/atlas_api_key
+  minio_access_key:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/minio_access_key
+  minio_secret_key:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/minio_secret_key
+  atlas_backup_key:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/atlas_backup_key
+  bootstrap_admin_password:
+    file: ${ATLAS_SECRETS_DIR:-./secrets}/bootstrap_admin_password
+
+# Enterprise network hardening: the `atlas-database` network is marked
+# internal so Traefik (the only thing on `atlas-management` + `atlas-frontend`)
+# is the sole ingress path. (Docker Compose does not support `internal:` on
+# a network override properly across versions, so this is enforced at the
+# firewall / orchestrator level in production. See docs/security.md.)
+networks:
+  atlas-database:
+    name: atlas-database
+    internal: true
