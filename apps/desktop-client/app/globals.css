@@ -1,0 +1,190 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn tokens (cyber dark theme baked in) */
+    --background: 222 47% 4%;
+    --foreground: 213 31% 91%;
+    --card: 222 47% 6%;
+    --card-foreground: 213 31% 91%;
+    --primary: 187 100% 50%;            /* #00f0ff */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 286 100% 50%;          /* #bd00ff */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 187 100% 50%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 187 100% 50% / 0.15;
+    --input: 187 100% 50% / 0.2;
+    --ring: 187 100% 50%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html, body {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground font-display antialiased;
+    background-color: #020408;
+    overflow: hidden;
+  }
+}
+
+@layer components {
+  /* Cyber glassmorphism panel — the signature ATLAS surface */
+  .glass-panel {
+    @apply relative overflow-hidden rounded-md border border-cyber-cyan/15 bg-[rgba(10,14,23,0.7)] backdrop-blur-xl;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.1);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .glass-panel::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 2px;
+    background: linear-gradient(135deg, #00f0ff 0%, #bd00ff 100%);
+    opacity: 0.7;
+  }
+  .glass-panel:hover {
+    border-color: rgba(0, 240, 255, 0.35);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.2);
+  }
+
+  /* Cyber button variants (custom; not the shadcn Button) */
+  .cyber-btn {
+    @apply font-orbitron uppercase tracking-widest;
+    background: transparent;
+    border: 1px solid #00f0ff;
+    color: #00f0ff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+    transition: all 0.2s ease-in-out;
+  }
+  .cyber-btn:hover {
+    background: #00f0ff;
+    color: #020408;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.2);
+  }
+  .cyber-btn-secondary {
+    border-color: #bd00ff;
+    color: #bd00ff;
+    box-shadow: 0 0 10px rgba(189, 0, 255, 0.15);
+  }
+  .cyber-btn-secondary:hover {
+    background: #bd00ff;
+    color: #fff;
+    box-shadow: 0 0 45px rgba(189, 0, 255, 0.25);
+  }
+  .cyber-btn-active {
+    background: #00f0ff;
+    color: #020408;
+    font-weight: 700;
+  }
+
+  .cyber-input {
+    @apply font-mono;
+    background: rgba(5, 7, 12, 0.8);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    color: #e2e8f0;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+  }
+  .cyber-input:focus {
+    border-color: #00f0ff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.25);
+    outline: none;
+  }
+
+  .status-dot {
+    @apply inline-block h-2 w-2 rounded-full;
+  }
+  .status-dot-green {
+    background-color: #39ff14;
+    box-shadow: 0 0 8px #39ff14, 0 0 15px #39ff14;
+  }
+  .status-dot-red {
+    background-color: #ff0055;
+    box-shadow: 0 0 8px #ff0055, 0 0 15px #ff0055;
+  }
+
+  .hologram-ring {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px dashed #00f0ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: rotate-cw 20s linear infinite;
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.25), inset 0 0 15px rgba(0, 240, 255, 0.25);
+  }
+  .hologram-ring::before,
+  .hologram-ring::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+  }
+  .hologram-ring::before {
+    width: 120px; height: 120px;
+    border: 1px double #bd00ff;
+    animation: rotate-ccw 10s linear infinite;
+    box-shadow: 0 0 10px rgba(189, 0, 255, 0.25);
+  }
+  .hologram-ring::after {
+    width: 90px; height: 90px;
+    border: 3px dotted #00f0ff;
+    opacity: 0.5;
+    animation: rotate-cw 5s linear infinite;
+  }
+
+  .voice-core {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #00f0ff 0%, #bd00ff 100%);
+    position: absolute;
+    animation: core-pulse 1.8s ease-in-out infinite;
+    box-shadow: 0 0 25px #00f0ff, 0 0 45px #bd00ff;
+  }
+}
+
+@layer utilities {
+  .text-cyber-cyan { color: #00f0ff; }
+  .text-cyber-magenta { color: #bd00ff; }
+  .text-cyber-green { color: #39ff14; }
+}
+
+/* Futuristic CRT scanline overlay */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+              linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 99999;
+  background-size: 100% 3px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Slim neon scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #05070c; }
+::-webkit-scrollbar-thumb {
+  background: #00f0ff;
+  border-radius: 4px;
+  box-shadow: 0 0 5px rgba(0, 240, 255, 0.25);
+}
+::-webkit-scrollbar-thumb:hover { background: #bd00ff; }
