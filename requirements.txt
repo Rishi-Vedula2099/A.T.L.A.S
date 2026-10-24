@@ -1,0 +1,61 @@
+# ==============================================================================
+# A.T.L.A.S — Python backend dependencies
+# Pinned for reproducible builds.
+# ==============================================================================
+
+# --- Web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+websockets==14.1
+python-multipart==0.0.20
+
+# --- Settings & config ---
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# --- Auth ---
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+email-validator==2.2.0
+
+# --- Databases ---
+psycopg2-binary==2.9.10
+redis==5.2.1
+qdrant-client==1.12.1
+neo4j==5.27.0
+
+# --- Object storage (backups) ---
+minio==7.2.13
+cryptography==44.0.0
+
+# --- Observability ---
+prometheus-client==0.21.1
+opentelemetry-sdk==1.29.0
+opentelemetry-exporter-otlp==1.29.0
+opentelemetry-instrumentation-fastapi==0.50b0
+
+# --- LLM / AI ---
+langgraph==0.2.60
+langchain==0.3.13
+langchain-core==0.3.28
+langchain-openai==0.2.14
+openai==1.57.0
+anthropic==0.40.0
+google-generativeai==0.8.3
+
+# --- Speech ---
+faster-whisper==1.0.3
+
+# --- Browser automation ---
+playwright==1.49.1
+
+# --- Vision ---
+mss==9.0.2
+opencv-python-headless==4.10.0.84
+pillow==11.0.0
+
+# --- HTTP client (integrations) ---
+httpx==0.28.1
+requests==2.32.3

@@ -1,0 +1,47 @@
+# ==============================================================================
+# A.T.L.A.S — Python project tooling config
+# ==============================================================================
+
+[project]
+name = "atlas"
+version = "0.1.0"
+description = "A.T.L.A.S — Autonomous Thinking Learning Assistance System"
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    "apps",
+    "infrastructure/backup",
+    ".next",
+    "node_modules",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "C4",  # comprehensions
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "B008",  # function calls in defaults (FastAPI pattern)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "(apps/|infrastructure/backup/|\\.next/)"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
